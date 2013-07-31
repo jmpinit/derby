@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+	<head>
+		<title>derby: controller</title>
+
+		<meta name="HandheldFriendly" content="true"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+		
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+		<script src="/hammer.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+
+		<script type="text/javascript">
+			var canvas, ctx;
+			var wheel;
+			var direction = Math.PI/2;
+
+			var socket;
+			var firstconnect = true;
+			
+			var myId;
+			
+			function connect() {
+			  if(firstconnect) {
+				socket = io.connect(null);
+				
+				socket.on('message', function(data){ 
+					myId = data;
+				});
+				
+				socket.on('connect',			function() { game_start(); });
+				socket.on('disconnect',			function() { game_pause('disconnected'); });
+				socket.on('reconnect',			function() { game_start(); });
+				socket.on('reconnecting',		function( nextRetry ) { game_pause('reconnecting'); });
+				socket.on('reconnect_failed',	function() { game_error('failed to reconnect'); });
+				  
+				firstconnect = false;
+			  }
+			  else {
+				socket.socket.reconnect();
+			  }
+			}
+				
+			//==== GAME LOGIC ====
+
+			function turn(amt) {
+				socket.send(myId + ",turn," + amt);
+			}
+
+			function draw_direction() {
+				/*
+				var len = (canvas.width+canvas.height)/4;
+
+				ctx.lineWidth = 4;
+				ctx.beginPath();
+				ctx.moveTo(canvas.width/2, canvas.height/2);
+				ctx.lineTo(canvas.width/2 + len*Math.cos(direction), canvas.height/2 + len*Math.sin(direction));
+				ctx.stroke();*/
+				
+			   	ctx.save();
+				ctx.translate(canvas.width/2, canvas.height/2);
+				ctx.rotate(direction + Math.PI/2);
+				ctx.drawImage(wheel, -wheel.width/2, -wheel.height/2);
+				ctx.restore();
+			}
+
+			function game_error(msg) {
+				ctx.fillStyle = "red";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				if(msg !== undefined) {
+					ctx.fillText(msg, 0, 0);
+				} else {
+					ctx.fillText("ERROR", 0, 0);
+				}
+			}
+
+			function game_pause(msg) {
+				ctx.fillStyle = "yellow";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				if(msg !== undefined) {
+					ctx.fillText(msg, 0, 0);
+				} else {
+					ctx.fillText("PAUSED", 0, 0);
+				}
+			}
+
+			function game_start() {
+				// setup viewport
+				canvas.width = $(window).width();
+				canvas.height = $(window).height();
+
+				ctx.fillStyle = "green";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				draw_direction();
+			}
+
+			function game_draw() {
+				ctx.fillStyle = "green";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				draw_direction();
+			}
+			
+			function start() {
+				canvas = document.getElementById("controller");
+				ctx = canvas.getContext('2d');
+
+				wheel = new Image();
+				wheel.src = "img/wheel.png";
+
+				// resize
+				$(window).resize(function() {
+					canvas.width = $(window).width();
+					canvas.height = $(window).height();
+					game_draw();	
+				});
+
+				// no zoom
+				var zoomlevel=1;
+
+				$("body").dblclick(function(ev) {
+					zoomlevel = zoomlevel == 1 ? 2 : 1;
+					$(this).css({
+						"-moz-transform":"scale("+zoomlevel+")",
+						"-webkit-transform":"scale("+zoomlevel+")",
+						"-o-transform":"scale("+zoomlevel+")",
+						"-ms-transform":"scale("+zoomlevel+")"
+					});
+				});
+
+				/*$(document).bind('touchmove', function(e){
+					direction = Math.atan2(e.pageY - canvas.height/2, e.pageX - canvas.width/2);
+					turn(-(direction + Math.PI/2)/32);
+					game_draw();
+				});*/
+
+				/*$(document).mousemove(function(e){
+					direction = Math.atan2(e.pageY - canvas.height/2, e.pageX - canvas.width/2);
+					turn(-(direction + Math.PI/2)/32);
+					game_draw();
+				});*/
+
+				/*Hammer(canvas).on('touch drag', function(event) {
+					direction = Math.atan2(event.gesture.center.pageY - canvas.height/2, event.gesture.center.pageX - canvas.width/2);
+					turn(-(direction + Math.PI/2)/32);
+					game_draw();
+				});*/
+
+				var hammertime = Hammer(canvas, {
+					prevent_default: true,
+					no_mouseevents: true
+				})
+
+				Hammer(canvas).on('touch release hold drag swipe', function(event) {
+					direction = Math.atan2(event.gesture.center.pageY - canvas.height/2, event.gesture.center.pageX - canvas.width/2);
+					turn(-(direction + Math.PI/2)/32);
+					game_draw();
+				});
+
+				// draw
+				canvas.width = $(window).width();
+				canvas.height = $(window).height();
+				game_draw();	
+
+				// connection to server
+				connect();
+			};
+		</script>
+	</head>
+	<body onload="start();" bgcolor = "yellow">
+		<canvas style="position: absolute; left: 0px; top: 0px;" id="controller"></canvas>
+	</body>
+</html>

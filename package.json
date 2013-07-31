@@ -1,0 +1,17 @@
+{
+	"name": "derby",
+	"version": "0.2.0",
+	"author": "Owen Trueblood <http://hackniac.com>",
+	"description": "Proof-of-concept, in-browser, multiplayer, top-down racing game",
+	"scripts": {
+		"start": "node derby.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jmptable/derby.git"
+	},
+	"dependencies": {
+		"socket.io": "*"
+	},
+	"license": "MIT"
+}
