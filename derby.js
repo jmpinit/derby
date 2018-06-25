@@ -78,7 +78,9 @@ send404 = function(res) {
 	res.end();
 };
 
-server.listen(80);
+const PORT = 1337;
+server.listen(PORT);
+console.log(`Interface accessible at http://127.0.0.1:${PORT}`);
 
 var io = require('./node_modules/socket.io').listen(server, { log: false });
 
@@ -136,3 +138,4 @@ setInterval(function() {
 	}
 	io.sockets.emit('game', message);
 }, 100 );
+
